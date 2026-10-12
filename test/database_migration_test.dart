@@ -1,0 +1,327 @@
+// Regression test for the full historical upgrade chain.
+//
+// v4 (commit 4fd7ee2, 2025-10-14) is the oldest schema any real installed
+// user could still be on — every version before it (v1-v3) predates the
+// `path_provider`-based db location and lacked company_info/settings
+// tables entirely, so no live install could realistically be stuck there.
+// v4's schema is reproduced here verbatim from git history (see
+// `git show 4fd7ee2:lib/database/database_helper.dart`) since that code no
+// longer exists in the current file.
+//
+// This exercises the real `_upgradeDB` chain (via the @visibleForTesting
+// upgradeDbForTest hook) end to end: v4 -> current dbVersion, on a live
+// in-memory sqflite_common_ffi connection — the same way sqflite's real
+// onUpgrade callback operates on an already-open Database, just invoked
+// directly instead of via a version-triggered reopen (in-memory DBs don't
+// survive close/reopen, so that path doesn't apply here anyway). Catches: a
+// migration step assuming a column/table that didn't exist yet in v4, a
+// step ordering bug, or old data getting clobbered/lost during the chain.
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:billflow/database/database_helper.dart';
+
+const _v4Schema = [
+  '''
+    CREATE TABLE customers (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      email TEXT,
+      phone TEXT,
+      address TEXT,
+      gstin TEXT
+    )
+  ''',
+  '''
+    CREATE TABLE products (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      description TEXT,
+      price REAL,
+      stock INTEGER,
+      hsncode TEXT,
+      tax_rate INTEGER
+    )
+  ''',
+  '''
+    CREATE TABLE invoices (
+      id TEXT PRIMARY KEY,
+      customer_id TEXT,
+      customer_name TEXT,
+      customer_email TEXT,
+      customer_phone TEXT,
+      customer_address TEXT,
+      customer_gstin TEXT,
+      date TEXT,
+      notes TEXT,
+      tax_rate REAL,
+      type TEXT
+    )
+  ''',
+  '''
+    CREATE TABLE invoice_items (
+      invoice_id TEXT,
+      product_id TEXT,
+      product_name TEXT,
+      product_description TEXT,
+      product_price REAL,
+      product_tax_rate INTEGER,
+      product_hsn_code TEXT,
+      quantity INTEGER,
+      discount REAL,
+      PRIMARY KEY (invoice_id, product_id),
+      FOREIGN KEY (invoice_id) REFERENCES invoices(id)
+    )
+  ''',
+  '''
+    CREATE TABLE users (
+      id TEXT PRIMARY KEY,
+      username TEXT UNIQUE,
+      password TEXT,
+      user_type TEXT
+    )
+  ''',
+  '''
+    CREATE TABLE company_info (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      address TEXT,
+      phone TEXT,
+      email TEXT,
+      website TEXT,
+      gstin TEXT
+    )
+  ''',
+  '''
+    CREATE TABLE settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    )
+  ''',
+];
+
+Future<Database> _openV4WithSampleData() async {
+  final db = await openDatabase(
+    inMemoryDatabasePath,
+    version: 4,
+    onCreate: (db, v) async {
+      for (final stmt in _v4Schema) {
+        await db.execute(stmt);
+      }
+    },
+  );
+
+  await db.insert('customers', {
+    'id': 'c1',
+    'name': 'Old Customer',
+    'email': 'old@example.com',
+    'phone': '9999999999',
+    'address': 'Old Address',
+    'gstin': '',
+  });
+  await db.insert('products', {
+    'id': 'p1',
+    'name': 'Old Product',
+    'description': '',
+    'price': 100.0,
+    'stock': 5,
+    'hsncode': '1234',
+    'tax_rate': 18,
+  });
+  await db.insert('invoices', {
+    'id': 'i1',
+    'customer_id': 'c1',
+    'customer_name': 'Old Customer',
+    'customer_email': 'old@example.com',
+    'customer_phone': '9999999999',
+    'customer_address': 'Old Address',
+    'customer_gstin': '',
+    'date': '2025-10-14',
+    'notes': 'Pre-migration invoice',
+    'tax_rate': 18.0,
+    'type': 'Invoice',
+  });
+  await db.insert('invoice_items', {
+    'invoice_id': 'i1',
+    'product_id': 'p1',
+    'product_name': 'Old Product',
+    'product_description': '',
+    'product_price': 100.0,
+    'product_tax_rate': 18,
+    'product_hsn_code': '1234',
+    'quantity': 2,
+    'discount': 0.0,
+  });
+  await db.insert('users', {
+    'id': 'user-001',
+    'username': 'admin',
+    'password': 'admin',
+    'user_type': 'admin',
+  });
+  await db.insert('company_info', {
+    'name': 'Your Company Name',
+    'address': '123 Street \nCity, State 12345',
+    'phone': '9876543210',
+    'email': 'info@yourcompany.com',
+    'website': 'www.yourcompany.com',
+    'gstin': '',
+  });
+
+  return db;
+}
+
+void main() {
+  setUpAll(() {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  });
+
+  test('upgrading from v4 to current preserves old data and adds new columns',
+      () async {
+    final db = await _openV4WithSampleData();
+    final currentVersion = DatabaseHelper().dbVersion;
+
+    await DatabaseHelper().upgradeDbForTest(db, 4, currentVersion);
+
+    // Old data survived the full chain.
+    final invoice =
+        (await db.query('invoices', where: 'id = ?', whereArgs: ['i1']))
+            .first;
+    expect(invoice['notes'], 'Pre-migration invoice');
+    expect(invoice['customer_name'], 'Old Customer');
+
+    final item = (await db.query('invoice_items',
+            where: 'invoice_id = ?', whereArgs: ['i1']))
+        .first;
+    expect(item['product_name'], 'Old Product');
+    expect(item['quantity'], 2);
+
+    // New columns exist with sane defaults, didn't crash the chain.
+    expect(invoice['currency_code'], 'INR');
+    expect(invoice['tax_mode'], 'global');
+    expect(invoice['customer_business_name'], '');
+
+    final user = (await db.query('users',
+            where: 'username = ?', whereArgs: ['admin']))
+        .first;
+    expect(user['salt'], isNull); // no salt was ever set for this legacy row
+    expect(user['password_changed'], 0); // forced reset for admin, per v8 step
+
+    // v41 added the per-line description. Pre-v41 rows stay NULL, and nothing
+    // falls back to product_description, so reprinting an old invoice renders
+    // exactly what it rendered before.
+    expect(item.containsKey('description'), isTrue);
+    expect(item['description'], isNull);
+
+    // v50 added quotation status + quote<->invoice links. Legacy rows stay
+    // NULL (read as 'draft', no link).
+    expect(invoice.containsKey('status'), isTrue);
+    expect(invoice['status'], isNull);
+    expect(invoice['converted_to_invoice_id'], isNull);
+    expect(invoice['converted_from_invoice_id'], isNull);
+
+    final companyInfo = (await db.query('company_info')).first;
+    expect(companyInfo['country'], 'India');
+    expect(companyInfo['pan_number'], '');
+    expect(companyInfo['fssai_code'], '');
+
+    // v49: exchange ledger table and per-product low-stock limit (NULL =
+    // default, so old products keep the old threshold of 10).
+    final ledgerCols = (await db.rawQuery('PRAGMA table_info(cash_ledger)'))
+        .map((r) => r['name'])
+        .toSet();
+    expect(ledgerCols, containsAll(['entry_type', 'cash_delta', 'upi_delta']));
+    final product = (await db.query('products')).first;
+    expect(product.containsKey('low_stock_limit'), isTrue);
+    expect(product['low_stock_limit'], isNull);
+    expect(product.containsKey('image'), isTrue);
+    expect(product['image'], isNull);
+
+    await db.close();
+  });
+
+  test('v52: created_by usernames become user ids; edit log table added',
+      () async {
+    final db = await openDatabase(inMemoryDatabasePath);
+    await db.execute(
+        'CREATE TABLE users (id TEXT PRIMARY KEY, username TEXT UNIQUE)');
+    // cash_ledger as it was at v51.
+    await db.execute('''
+      CREATE TABLE cash_ledger (
+        id TEXT PRIMARY KEY, entry_type TEXT NOT NULL,
+        cash_delta REAL NOT NULL DEFAULT 0, upi_delta REAL NOT NULL DEFAULT 0,
+        date_time TEXT NOT NULL, created_by TEXT)''');
+    // v52 also re-adds invoice_items.discount_is_percent.
+    await db.execute('CREATE TABLE invoice_items (id TEXT PRIMARY KEY)');
+    await db.insert('users', {'id': 'user-001', 'username': 'admin'});
+    await db.insert('users', {'id': '[#a1b2c]', 'username': 'staff'});
+    for (final (id, by) in [('1', 'staff'), ('2', 'admin'), ('3', 'gone'), ('4', null)]) {
+      await db.insert('cash_ledger', {
+        'id': id,
+        'entry_type': 'expense',
+        'date_time': '2026-09-25T10:00:00.000',
+        'created_by': by,
+      });
+    }
+
+    await DatabaseHelper().upgradeDbForTest(db, 51, 52);
+
+    final rows = await db.query('cash_ledger', orderBy: 'id');
+    expect(rows.map((r) => r['created_by']),
+        ['[#a1b2c]', 'user-001', 'gone', null]);
+    expect(rows.first.containsKey('created_at'), isTrue);
+    expect(await db.query('cash_ledger_history'), isEmpty);
+    await db.close();
+  });
+
+  test('v53: adds image column to products table', () async {
+    final db = await openDatabase(inMemoryDatabasePath);
+    await db.execute('''
+      CREATE TABLE products (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        price REAL
+      )
+    ''');
+    await db.insert('products', {'id': 'p1', 'name': 'Item', 'price': 10.0});
+
+    await DatabaseHelper().upgradeDbForTest(db, 52, 53);
+
+    final cols = (await db.rawQuery('PRAGMA table_info(products)'))
+        .map((r) => r['name'])
+        .toSet();
+    expect(cols, contains('image'));
+
+    final rows = await db.query('products');
+    expect(rows.first['image'], isNull);
+    await db.close();
+  });
+
+  test('v54: adds product_image column to invoice_items table', () async {
+    final db = await openDatabase(inMemoryDatabasePath);
+    await db.execute('''
+      CREATE TABLE invoice_items (
+        id TEXT PRIMARY KEY,
+        invoice_id TEXT,
+        product_id TEXT,
+        product_name TEXT
+      )
+    ''');
+    await db.insert('invoice_items', {
+      'id': 'ii1',
+      'invoice_id': 'inv1',
+      'product_id': 'p1',
+      'product_name': 'Item',
+    });
+
+    await DatabaseHelper().upgradeDbForTest(db, 53, 54);
+
+    final cols = (await db.rawQuery('PRAGMA table_info(invoice_items)'))
+        .map((r) => r['name'])
+        .toSet();
+    expect(cols, contains('product_image'));
+
+    final rows = await db.query('invoice_items');
+    expect(rows.first['product_image'], isNull);
+    await db.close();
+  });
+}
