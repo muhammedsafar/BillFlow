@@ -688,6 +688,59 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
     }
 
     final l10n = AppLocalizations.of(context)!;
+    final metaWidgets = <Widget>[];
+    for (final key in _columnsConfig.metaOrder) {
+      switch (key) {
+        case 'metaStorageLocation':
+          if (_columnsConfig.metaStorageLocation) {
+            metaWidgets.add(field(storageLocationCtrl,
+                l10n.productMgmtStorageLocationLabel, Icons.place_outlined));
+          }
+          break;
+        case 'metaContainerNumber':
+          if (_columnsConfig.metaContainerNumber) {
+            metaWidgets.add(field(containerNumberCtrl,
+                l10n.productMgmtContainerNumberLabel, Icons.inventory_2_outlined));
+          }
+          break;
+        case 'metaBatchNumber':
+          if (_columnsConfig.metaBatchNumber) {
+            metaWidgets.add(field(batchNumberCtrl,
+                l10n.productMgmtBatchNumberLabel, Icons.tag));
+          }
+          break;
+        case 'metaExpiryDate':
+          if (_columnsConfig.metaExpiryDate) {
+            metaWidgets.add(dateField(
+                l10n.productMgmtExpiryDateLabel, expiryDate, onExpiryChanged));
+          }
+          break;
+        case 'metaManufactureDate':
+          if (_columnsConfig.metaManufactureDate) {
+            metaWidgets.add(dateField(l10n.productMgmtManufactureDateLabel,
+                manufactureDate, onManufactureChanged));
+          }
+          break;
+        case 'metaManufactureName':
+          if (_columnsConfig.metaManufactureName) {
+            metaWidgets.add(field(manufactureNameCtrl,
+                l10n.productMgmtManufactureNameLabel, Icons.factory_outlined));
+          }
+          break;
+        case 'metaSupplierName':
+          if (_columnsConfig.metaSupplierName) {
+            metaWidgets.add(field(supplierNameCtrl,
+                l10n.productMgmtSupplierNameLabel, Icons.local_shipping_outlined));
+          }
+          break;
+        case 'metaNotes':
+          if (_columnsConfig.metaNotes) {
+            metaWidgets.add(field(notesCtrl, l10n.productMgmtNotesLabel,
+                Icons.notes, maxLines: 3));
+          }
+          break;
+      }
+    }
     return Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
@@ -695,24 +748,7 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
         title: Text(l10n.productMgmtAdvancedInformationLabel),
         leading: const Icon(Icons.more_horiz),
         childrenPadding: const EdgeInsets.only(top: 8),
-        children: [
-          if (_columnsConfig.metaStorageLocation)
-            field(storageLocationCtrl, l10n.productMgmtStorageLocationLabel, Icons.place_outlined),
-          if (_columnsConfig.metaContainerNumber)
-            field(containerNumberCtrl, l10n.productMgmtContainerNumberLabel, Icons.inventory_2_outlined),
-          if (_columnsConfig.metaBatchNumber)
-            field(batchNumberCtrl, l10n.productMgmtBatchNumberLabel, Icons.tag),
-          if (_columnsConfig.metaExpiryDate)
-            dateField(l10n.productMgmtExpiryDateLabel, expiryDate, onExpiryChanged),
-          if (_columnsConfig.metaManufactureDate)
-            dateField(l10n.productMgmtManufactureDateLabel, manufactureDate, onManufactureChanged),
-          if (_columnsConfig.metaManufactureName)
-            field(manufactureNameCtrl, l10n.productMgmtManufactureNameLabel, Icons.factory_outlined),
-          if (_columnsConfig.metaSupplierName)
-            field(supplierNameCtrl, l10n.productMgmtSupplierNameLabel, Icons.local_shipping_outlined),
-          if (_columnsConfig.metaNotes)
-            field(notesCtrl, l10n.productMgmtNotesLabel, Icons.notes, maxLines: 3),
-        ],
+        children: metaWidgets,
       ),
     );
   }
@@ -2617,155 +2653,127 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
 
   // ── Slide-out "Add New Product" panel ──────────────────────────────────
 
-  // Sectioned form used by the Add panel — same section grouping/order as
-  // the View/Edit dialog (General / Pricing / Inventory / Advanced
-  // Information) instead of the old Basic Information / Advanced tabs.
-  Widget _addPanelFormV2() {
+  Widget? _buildAddFormFieldByKey(String key) {
     final l10n = AppLocalizations.of(context)!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionLabelV2(l10n.productMgmtSectionGeneral),
-        _buildFormField(_nameController, l10n.fieldNameLabel, Icons.inventory_2,
-            maxLength: 100, onSubmitted: _addProductV2),
-        if (_columnsConfig.aliasName) ...[
-          const SizedBox(height: 16),
-          _buildFormField(_aliasNameController,
-              l10n.productMgmtAliasNameLabel, Icons.translate,
-              maxLength: 100,
-              required: false,
-              helperText: l10n.productMgmtAliasHelperText),
-        ],
-        if (_columnsConfig.description) ...[
-          const SizedBox(height: 16),
-          _buildFormField(
-              _descriptionController, l10n.productMgmtDescriptionLabel, Icons.description,
-              maxLines: 3, maxLength: 500, required: false),
-        ],
-        if (_columnsConfig.hsncode) ...[
-          const SizedBox(height: 16),
-          _buildFormField(_hsnCodeController, l10n.productMgmtHsnSacLabel, Icons.qr_code,
-              maxLength: 100, required: false),
-        ],
-        const SizedBox(height: 16),
-        _buildImagePickerField(
-          controller: _imageController,
-          onImageChanged: () {
-            if (mounted) setState(() {});
-          },
-        ),
-        if (_columnsConfig.metaSkuCode) ...[
-          const SizedBox(height: 16),
-          _buildFormField(
-            _skuCodeController,
-            l10n.productMgmtSkuCodeLabel,
-            Icons.qr_code_2,
+    switch (key) {
+      case 'name':
+        return _buildFormField(_nameController, l10n.fieldNameLabel, Icons.inventory_2,
+            maxLength: 100, onSubmitted: _addProductV2);
+      case 'aliasName':
+        if (!_columnsConfig.aliasName) return null;
+        return _buildFormField(_aliasNameController,
+            l10n.productMgmtAliasNameLabel, Icons.translate,
             maxLength: 100,
             required: false,
-          ),
-        ],
-        const SizedBox(height: 20),
-        _sectionLabelV2(l10n.productMgmtSectionPricing),
-        Row(
+            helperText: l10n.productMgmtAliasHelperText);
+      case 'description':
+        if (!_columnsConfig.description) return null;
+        return _buildFormField(
+            _descriptionController, l10n.productMgmtDescriptionLabel, Icons.description,
+            maxLines: 3, maxLength: 500, required: false);
+      case 'hsncode':
+        if (!_columnsConfig.hsncode) return null;
+        return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: _buildFormField(_priceController, l10n.productMgmtSalePriceLabel, Icons.attach_money,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  isPrice: true,
-                  prefixText: '$_currencySymbol ',
-                  onSubmitted: _addProductV2),
+            _buildFormField(_hsnCodeController, l10n.productMgmtHsnSacLabel, Icons.qr_code,
+                maxLength: 100, required: false),
+            const SizedBox(height: 16),
+            _buildImagePickerField(
+              controller: _imageController,
+              onImageChanged: () {
+                if (mounted) setState(() {});
+              },
             ),
-            if (_columnsConfig.purchasePrice) ...[
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildFormField(
-                    _purchasePriceController, l10n.productMgmtPurchasePriceLabel, Icons.shopping_cart_outlined,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    isPrice: true,
-                    required: _newItemType != 'service',
-                    prefixText: '$_currencySymbol '),
-              ),
-            ],
           ],
-        ),
-        if (_columnsConfig.defaultDiscount) ...[
-          const SizedBox(height: 16),
-          _buildFormField(
-              _defaultDiscountController, l10n.productMgmtDefaultDiscountLabel, Icons.discount,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              isPrice: true,
-              required: false,
-              prefixText: '$_currencySymbol '),
-        ],
-        if (_columnsConfig.taxRate) ...[
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: _buildFormField(_taxRateController, l10n.productMgmtTaxPercentLabel, Icons.percent,
-                    keyboardType: TextInputType.number, isTaxRate: true),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Checkbox(
-                      value: _priceIncludesTax,
-                      onChanged: (v) {
-                        if (!mounted) return;
-                        setState(() => _priceIncludesTax = v ?? false);
-                      },
-                    ),
-                    Flexible(
-                      child: Text(l10n.fieldPriceIncludesTaxLabel,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyMedium),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 4),
-            child: Text(l10n.productMgmtPerItemTaxModeOnlyLabel,
-                style: TextStyle(
-                    fontSize: 11.5,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          ),
-        ],
-        if (_columnsConfig.stock || _columnsConfig.unit) ...[
-          const SizedBox(height: 12),
-          _sectionLabelV2(l10n.productMgmtSectionInventory),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_columnsConfig.stock)
+        );
+      case 'skuCode':
+        if (!_columnsConfig.metaSkuCode) return null;
+        return _buildFormField(
+          _skuCodeController,
+          l10n.productMgmtSkuCodeLabel,
+          Icons.qr_code_2,
+          maxLength: 100,
+          required: false,
+        );
+      case 'price':
+        return _buildFormField(_priceController, l10n.productMgmtSalePriceLabel, Icons.attach_money,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            isPrice: true,
+            prefixText: '$_currencySymbol ',
+            onSubmitted: _addProductV2);
+      case 'purchasePrice':
+        if (!_columnsConfig.purchasePrice) return null;
+        return _buildFormField(
+            _purchasePriceController, l10n.productMgmtPurchasePriceLabel, Icons.shopping_cart_outlined,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            isPrice: true,
+            required: _newItemType != 'service',
+            prefixText: '$_currencySymbol ');
+      case 'defaultDiscount':
+        if (!_columnsConfig.defaultDiscount) return null;
+        return _buildFormField(
+            _defaultDiscountController, l10n.productMgmtDefaultDiscountLabel, Icons.discount,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            isPrice: true,
+            required: false,
+            prefixText: '$_currencySymbol ');
+      case 'taxRate':
+        if (!_columnsConfig.taxRate) return null;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
                 Expanded(
-                  child: _buildFormField(_stockController, l10n.labelStock, Icons.inventory,
-                      keyboardType: TextInputType.number,
-                      isStock: true,
-                      required: !_unlimitedStock && !_stockLocked,
-                      enabled: !_unlimitedStock && !_stockLocked),
+                  child: _buildFormField(_taxRateController, l10n.productMgmtTaxPercentLabel, Icons.percent,
+                      keyboardType: TextInputType.number, isTaxRate: true),
                 ),
-              if (_columnsConfig.stock && _columnsConfig.unit) const SizedBox(width: 12),
-              if (_columnsConfig.unit)
+                const SizedBox(width: 12),
                 Expanded(
-                  child: _buildUnitField(
-                    selectedUnit: _selectedUnit,
-                    customController: _customUnitController,
-                    onUnitChanged: (v) {
-                      if (!mounted) return;
-                      setState(() => _selectedUnit = v);
-                    },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Checkbox(
+                        value: _priceIncludesTax,
+                        onChanged: (v) {
+                          if (!mounted) return;
+                          setState(() => _priceIncludesTax = v ?? false);
+                        },
+                      ),
+                      Flexible(
+                        child: Text(l10n.fieldPriceIncludesTaxLabel,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodyMedium),
+                      ),
+                    ],
                   ),
                 ),
-            ],
-          ),
-          if (_columnsConfig.stock)
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 4, top: 4),
+              child: Text(l10n.productMgmtPerItemTaxModeOnlyLabel,
+                  style: TextStyle(
+                      fontSize: 11.5,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            ),
+          ],
+        );
+      case 'stock':
+        if (!_columnsConfig.stock) return null;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildFormField(_stockController, l10n.labelStock, Icons.inventory,
+                keyboardType: TextInputType.number,
+                isStock: true,
+                required: !_unlimitedStock && !_stockLocked,
+                enabled: !_unlimitedStock && !_stockLocked),
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
@@ -2780,39 +2788,133 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
               title: Text(l10n.productMgmtUnlimitedStockLabel),
               subtitle: Text(l10n.productMgmtTrackInfiniteStockSubtitle),
             ),
-          if (_columnsConfig.stock && !_unlimitedStock)
-            _buildFormField(_lowStockLimitController,
-                l10n.productMgmtLowStockLimitLabel, Icons.notification_important_outlined,
-                keyboardType: TextInputType.number,
-                isStock: true,
-                required: false,
-                enabled: !_stockLocked,
-                helperText: l10n.productMgmtLowStockLimitHelper),
-        ],
-        if (_columnsConfig.productMetadata) ...[
-          const SizedBox(height: 8),
-          _buildMetadataSection(
-            storageLocationCtrl: _storageLocationController,
-            containerNumberCtrl: _containerNumberController,
-            batchNumberCtrl: _batchNumberController,
-            manufactureNameCtrl: _manufactureNameController,
-            supplierNameCtrl: _supplierNameController,
-            skuCodeCtrl: _skuCodeController,
-            notesCtrl: _notesController,
-            expiryDate: _expiryDate,
-            manufactureDate: _manufactureDate,
-            datePattern: _datePattern,
-            onExpiryChanged: (d) {
-              if (!mounted) return;
-              setState(() => _expiryDate = d);
-            },
-            onManufactureChanged: (d) {
-              if (!mounted) return;
-              setState(() => _manufactureDate = d);
+            if (!_unlimitedStock)
+              _buildFormField(_lowStockLimitController,
+                  l10n.productMgmtLowStockLimitLabel, Icons.notification_important_outlined,
+                  keyboardType: TextInputType.number,
+                  isStock: true,
+                  required: false,
+                  enabled: !_stockLocked,
+                  helperText: l10n.productMgmtLowStockLimitHelper),
+          ],
+        );
+      case 'unit':
+        if (!_columnsConfig.unit) return null;
+        return _buildUnitField(
+          selectedUnit: _selectedUnit,
+          customController: _customUnitController,
+          onUnitChanged: (v) {
+            if (!mounted) return;
+            setState(() => _selectedUnit = v);
+          },
+        );
+      case 'type':
+        final showTypeToggle =
+            _businessType == BusinessType.both && _columnsConfig.type;
+        if (!showTypeToggle) return null;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.productColumnsProductServiceTypeLabel,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 6),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(
+                    value: 'product',
+                    label: Text('Product'),
+                    icon: Icon(Icons.inventory_2_outlined, size: 16),
+                  ),
+                  ButtonSegment(
+                    value: 'service',
+                    label: Text('Service'),
+                    icon: Icon(Icons.handshake_outlined, size: 16),
+                  ),
+                ],
+                selected: {_newItemType},
+                onSelectionChanged: (set) {
+                  if (set.isNotEmpty) {
+                    setState(() {
+                      _newItemType = set.first;
+                      _unlimitedStock =
+                          _newItemType == 'service' || !_columnsConfig.stock;
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      case 'productMetadata':
+        if (!_columnsConfig.productMetadata) return null;
+        return _buildMetadataSection(
+          storageLocationCtrl: _storageLocationController,
+          containerNumberCtrl: _containerNumberController,
+          batchNumberCtrl: _batchNumberController,
+          manufactureNameCtrl: _manufactureNameController,
+          supplierNameCtrl: _supplierNameController,
+          skuCodeCtrl: _skuCodeController,
+          notesCtrl: _notesController,
+          expiryDate: _expiryDate,
+          manufactureDate: _manufactureDate,
+          datePattern: _datePattern,
+          onExpiryChanged: (d) {
+            if (!mounted) return;
+            setState(() => _expiryDate = d);
+          },
+          onManufactureChanged: (d) {
+            if (!mounted) return;
+            setState(() => _manufactureDate = d);
+          },
+        );
+      default:
+        return null;
+    }
+  }
+
+  Widget _addPanelFormV2() {
+    final l10n = AppLocalizations.of(context)!;
+    final formItems = <Widget>[];
+
+    for (final key in _columnsConfig.fieldOrder) {
+      final widget = _buildAddFormFieldByKey(key);
+      if (widget != null) {
+        if (formItems.isNotEmpty) {
+          formItems.add(const SizedBox(height: 16));
+        }
+        formItems.add(widget);
+      }
+    }
+
+    // Include image picker if HSN wasn't enabled/rendered
+    if (!_columnsConfig.hsncode) {
+      formItems.insert(
+        formItems.length > 1 ? 1 : 0,
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _buildImagePickerField(
+            controller: _imageController,
+            onImageChanged: () {
+              if (mounted) setState(() {});
             },
           ),
-        ],
-        const SizedBox(height: 8),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ...formItems,
+        const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -2837,6 +2939,7 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
       ],
     );
   }
+
 
   Widget _addPanelV2() {
     // Width is now controlled by the Positioned wrapper in _buildV2 (fixed

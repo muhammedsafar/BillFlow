@@ -14,4 +14,25 @@ void main() {
     expect(ProductColumnsConfig.fromJson(on.toJson()).stockEditAdminOnly, isTrue);
     expect(on.copyWith(stock: false).stockEditAdminOnly, isTrue);
   });
+
+  test('fieldOrder and metaOrder default, sanitize, and survive JSON', () {
+    const config = ProductColumnsConfig();
+    expect(config.fieldOrder, ProductColumnsConfig.defaultFieldOrder);
+    expect(config.metaOrder, ProductColumnsConfig.defaultMetaOrder);
+
+    final reordered = config.copyWith(
+      fieldOrder: ['extraCost', 'name', 'price'],
+      metaOrder: ['metaNotes', 'metaExpiryDate'],
+    );
+    // Sanitization appends remaining fields without duplicates
+    expect(reordered.fieldOrder.first, 'extraCost');
+    expect(reordered.fieldOrder.length, ProductColumnsConfig.defaultFieldOrder.length);
+    expect(reordered.metaOrder.first, 'metaNotes');
+    expect(reordered.metaOrder.length, ProductColumnsConfig.defaultMetaOrder.length);
+
+    final fromJson = ProductColumnsConfig.fromJson(reordered.toJson());
+    expect(fromJson.fieldOrder.first, 'extraCost');
+    expect(fromJson.metaOrder.first, 'metaNotes');
+  });
 }
+

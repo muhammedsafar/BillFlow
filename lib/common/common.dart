@@ -465,6 +465,68 @@ String signatureSizeLabel(BuildContext context, SignatureSize size) =>
 /// they opt into hiding fields. Name and Price are never toggleable —
 /// intentionally absent from this class.
 class ProductColumnsConfig {
+  static const List<String> defaultFieldOrder = [
+    'name',
+    'price',
+    'stock',
+    'aliasName',
+    'taxRate',
+    'hsncode',
+    'skuCode',
+    'description',
+    'purchasePrice',
+    'purchasePriceAdminOnly',
+    'stockEditAdminOnly',
+    'defaultDiscount',
+    'unit',
+    'type',
+    'productMetadata',
+    'extraCost',
+  ];
+
+  static const List<String> defaultMetaOrder = [
+    'metaStorageLocation',
+    'metaContainerNumber',
+    'metaBatchNumber',
+    'metaExpiryDate',
+    'metaManufactureDate',
+    'metaManufactureName',
+    'metaSupplierName',
+    'metaNotes',
+  ];
+
+  static List<String> sanitizeFieldOrder(List<String>? order) {
+    if (order == null || order.isEmpty) return List.from(defaultFieldOrder);
+    final result = <String>[];
+    for (final item in order) {
+      if (defaultFieldOrder.contains(item) && !result.contains(item)) {
+        result.add(item);
+      }
+    }
+    for (final def in defaultFieldOrder) {
+      if (!result.contains(def)) {
+        result.add(def);
+      }
+    }
+    return result;
+  }
+
+  static List<String> sanitizeMetaOrder(List<String>? order) {
+    if (order == null || order.isEmpty) return List.from(defaultMetaOrder);
+    final result = <String>[];
+    for (final item in order) {
+      if (defaultMetaOrder.contains(item) && !result.contains(item)) {
+        result.add(item);
+      }
+    }
+    for (final def in defaultMetaOrder) {
+      if (!result.contains(def)) {
+        result.add(def);
+      }
+    }
+    return result;
+  }
+
   final bool aliasName;
   final bool taxRate;
   final bool hsncode;
@@ -491,6 +553,8 @@ class ProductColumnsConfig {
   // Not a column: when true, non-admin users can't set or change stock
   // (add form, edit dialog, CSV import). Default false.
   final bool stockEditAdminOnly;
+  final List<String> fieldOrder;
+  final List<String> metaOrder;
 
   const ProductColumnsConfig({
     this.aliasName = true,
@@ -515,6 +579,8 @@ class ProductColumnsConfig {
     this.metaNotes = true,
     this.purchasePriceAdminOnly = false,
     this.stockEditAdminOnly = false,
+    this.fieldOrder = defaultFieldOrder,
+    this.metaOrder = defaultMetaOrder,
   });
 
   Map<String, dynamic> toJson() => {
@@ -540,6 +606,8 @@ class ProductColumnsConfig {
         'metaNotes': metaNotes,
         'purchasePriceAdminOnly': purchasePriceAdminOnly,
         'stockEditAdminOnly': stockEditAdminOnly,
+        'fieldOrder': fieldOrder,
+        'metaOrder': metaOrder,
       };
 
   factory ProductColumnsConfig.fromJson(Map<String, dynamic> json) =>
@@ -567,6 +635,12 @@ class ProductColumnsConfig {
         purchasePriceAdminOnly:
             json['purchasePriceAdminOnly'] as bool? ?? false,
         stockEditAdminOnly: json['stockEditAdminOnly'] as bool? ?? false,
+        fieldOrder: sanitizeFieldOrder((json['fieldOrder'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList()),
+        metaOrder: sanitizeMetaOrder((json['metaOrder'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList()),
       );
 
   ProductColumnsConfig copyWith({
@@ -592,6 +666,8 @@ class ProductColumnsConfig {
     bool? metaNotes,
     bool? purchasePriceAdminOnly,
     bool? stockEditAdminOnly,
+    List<String>? fieldOrder,
+    List<String>? metaOrder,
   }) =>
       ProductColumnsConfig(
         aliasName: aliasName ?? this.aliasName,
@@ -617,6 +693,12 @@ class ProductColumnsConfig {
         purchasePriceAdminOnly:
             purchasePriceAdminOnly ?? this.purchasePriceAdminOnly,
         stockEditAdminOnly: stockEditAdminOnly ?? this.stockEditAdminOnly,
+        fieldOrder: fieldOrder != null
+            ? sanitizeFieldOrder(fieldOrder)
+            : this.fieldOrder,
+        metaOrder: metaOrder != null
+            ? sanitizeMetaOrder(metaOrder)
+            : this.metaOrder,
       );
 }
 

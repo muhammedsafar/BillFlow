@@ -1137,6 +1137,30 @@ class _CreateInvoiceScreenV2State extends ConsumerState<CreateInvoiceScreenV2> {
                   ],
                   const SizedBox(height: 16),
                 ],
+                if (_columnsConfig.extraCost &&
+                    _columnsConfig.fieldOrder.indexOf('extraCost') <
+                        _columnsConfig.fieldOrder.indexOf('price')) ...[
+                  TextField(
+                    controller: extraCostController,
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context)!.fieldExtraCostLabel,
+                      hintText: '0.00',
+                      helperText: 'Flat fee added on top of the line total',
+                      border: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppBorderRadius.xsmall)),
+                      prefixIcon: const Icon(Icons.add_circle_outline, size: 18),
+                      filled: true,
+                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    ),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 TextField(
                   controller: unitPriceController,
                   autofocus: !_showQuantity,
@@ -1157,7 +1181,9 @@ class _CreateInvoiceScreenV2State extends ConsumerState<CreateInvoiceScreenV2> {
                   ],
                   onSubmitted: (_) => addInvoiceProductImpl(),
                 ),
-                if (_columnsConfig.extraCost) ...[
+                if (_columnsConfig.extraCost &&
+                    _columnsConfig.fieldOrder.indexOf('extraCost') >=
+                        _columnsConfig.fieldOrder.indexOf('price')) ...[
                   const SizedBox(height: 16),
                   TextField(
                     controller: extraCostController,
@@ -1797,6 +1823,30 @@ class _CreateInvoiceScreenV2State extends ConsumerState<CreateInvoiceScreenV2> {
                   ],
                 ],
                 const SizedBox(height: 16),
+                if (_columnsConfig.extraCost &&
+                    _columnsConfig.fieldOrder.indexOf('extraCost') <
+                        _columnsConfig.fieldOrder.indexOf('price')) ...[
+                  TextField(
+                    controller: extraCostController,
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context)!.fieldExtraCostLabel,
+                      hintText: '0.00',
+                      helperText: 'Flat fee added on top of the line total',
+                      border: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppBorderRadius.xsmall)),
+                      prefixIcon: const Icon(Icons.add_circle_outline, size: 18),
+                      filled: true,
+                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    ),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 TextField(
                   controller: unitPriceController,
                   decoration: InputDecoration(
@@ -1816,7 +1866,9 @@ class _CreateInvoiceScreenV2State extends ConsumerState<CreateInvoiceScreenV2> {
                     FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                   ],
                 ),
-                if (_columnsConfig.extraCost) ...[
+                if (_columnsConfig.extraCost &&
+                    _columnsConfig.fieldOrder.indexOf('extraCost') >=
+                        _columnsConfig.fieldOrder.indexOf('price')) ...[
                   const SizedBox(height: 16),
                   TextField(
                     controller: extraCostController,
