@@ -663,6 +663,17 @@ class _CreateInvoiceScreenV2State extends ConsumerState<CreateInvoiceScreenV2> {
         products = p;
         filteredProducts = List.from(p);
         _productMetadata = productMetadata;
+        if (isEditing) {
+          for (final it in invoiceItems) {
+            if (it.product.image == null || it.product.image!.trim().isEmpty) {
+              final catImg =
+                  p.where((prod) => prod.id == it.product.id).firstOrNull?.image;
+              if (catImg != null && catImg.trim().isNotEmpty) {
+                it.product.image = catImg;
+              }
+            }
+          }
+        }
         if (invNumber != null) {
           currentInvoiceNumber = invNumber;
         }
@@ -1367,6 +1378,14 @@ class _CreateInvoiceScreenV2State extends ConsumerState<CreateInvoiceScreenV2> {
     setState(() => isLoading = true);
 
     try {
+      for (final it in invoiceItems) {
+        if (it.product.image == null || it.product.image!.trim().isEmpty) {
+          final catImg = products.where((p) => p.id == it.product.id).firstOrNull?.image;
+          if (catImg != null && catImg.trim().isNotEmpty) {
+            it.product.image = catImg;
+          }
+        }
+      }
       final invoiceId = await InvoicePdfServices.generateNextId();
       final invoiceNumber =
           await InvoicePdfServices.generateNextInvoiceNumber(invoiceType);
@@ -3613,6 +3632,14 @@ class _CreateInvoiceScreenV2State extends ConsumerState<CreateInvoiceScreenV2> {
     setState(() => isLoading = true);
 
     try {
+      for (final it in invoiceItems) {
+        if (it.product.image == null || it.product.image!.trim().isEmpty) {
+          final catImg = products.where((p) => p.id == it.product.id).firstOrNull?.image;
+          if (catImg != null && catImg.trim().isNotEmpty) {
+            it.product.image = catImg;
+          }
+        }
+      }
       final updatedInvoice = Invoice(
         id: _invoice!.id,
         invoiceNumber: _invoice!.invoiceNumber,
@@ -5313,12 +5340,19 @@ class _CreateInvoiceScreenV2State extends ConsumerState<CreateInvoiceScreenV2> {
   }
 
   Widget _buildInvoiceItemImageThumbnail(InvoiceItem item) {
+    final rawImage = item.product.image;
+    final effectiveImage = (rawImage != null && rawImage.trim().isNotEmpty)
+        ? rawImage
+        : products.where((p) => p.id == item.product.id).firstOrNull?.image;
     final hasImage =
-        item.product.image != null && item.product.image!.trim().isNotEmpty;
+        effectiveImage != null && effectiveImage.trim().isNotEmpty;
+    if (item.product.image == null && hasImage) {
+      item.product.image = effectiveImage;
+    }
     return InkWell(
       onTap: () => ProductImageViewer.showImageModal(
         context,
-        image: item.product.image,
+        image: effectiveImage,
         title: item.product.name,
         subtitle:
             'Price: $_currencySymbol${item.effectivePrice.toStringAsFixed(2)}${item.product.hsncode.isNotEmpty ? ' • HSN: ${item.product.hsncode}' : ''}',
@@ -5332,7 +5366,7 @@ class _CreateInvoiceScreenV2State extends ConsumerState<CreateInvoiceScreenV2> {
       ),
       onDoubleTap: () => ProductImageViewer.showImageModal(
         context,
-        image: item.product.image,
+        image: effectiveImage,
         title: item.product.name,
         subtitle:
             'Price: $_currencySymbol${item.effectivePrice.toStringAsFixed(2)}${item.product.hsncode.isNotEmpty ? ' • HSN: ${item.product.hsncode}' : ''}',
@@ -5360,7 +5394,7 @@ class _CreateInvoiceScreenV2State extends ConsumerState<CreateInvoiceScreenV2> {
           ),
           clipBehavior: Clip.antiAlias,
           child: hasImage
-              ? ProductImageViewer(image: item.product.image, fit: BoxFit.cover)
+              ? ProductImageViewer(image: effectiveImage, fit: BoxFit.cover)
               : Icon(
                   Icons.image_outlined,
                   size: 20,

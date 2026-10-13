@@ -92,6 +92,7 @@ class InvoiceService {
           'line_metadata': item.metadata == null
               ? null
               : jsonEncode(item.metadata!.toMap()),
+          'product_image': item.product.image,
         });
       }
 
@@ -208,6 +209,7 @@ class InvoiceService {
           'line_metadata': item.metadata == null
               ? null
               : jsonEncode(item.metadata!.toMap()),
+          'product_image': item.product.image,
         });
       }
     });
