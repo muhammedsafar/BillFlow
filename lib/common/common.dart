@@ -473,6 +473,7 @@ class ProductColumnsConfig {
     'taxRate',
     'hsncode',
     'skuCode',
+    'image',
     'description',
     'purchasePrice',
     'purchasePriceAdminOnly',
@@ -537,6 +538,7 @@ class ProductColumnsConfig {
   final bool type;
   final bool extraCost;
   final bool stock;
+  final bool image;
   final bool productMetadata;
   final bool metaStorageLocation;
   final bool metaContainerNumber;
@@ -567,6 +569,7 @@ class ProductColumnsConfig {
     this.type = true,
     this.extraCost = true,
     this.stock = true,
+    this.image = true,
     this.productMetadata = true,
     this.metaStorageLocation = true,
     this.metaContainerNumber = true,
@@ -594,6 +597,7 @@ class ProductColumnsConfig {
         'type': type,
         'extraCost': extraCost,
         'stock': stock,
+        'image': image,
         'productMetadata': productMetadata,
         'metaStorageLocation': metaStorageLocation,
         'metaContainerNumber': metaContainerNumber,
@@ -622,6 +626,7 @@ class ProductColumnsConfig {
         type: json['type'] as bool? ?? true,
         extraCost: json['extraCost'] as bool? ?? true,
         stock: json['stock'] as bool? ?? true,
+        image: json['image'] as bool? ?? true,
         productMetadata: json['productMetadata'] as bool? ?? true,
         metaStorageLocation: json['metaStorageLocation'] as bool? ?? true,
         metaContainerNumber: json['metaContainerNumber'] as bool? ?? true,
@@ -654,6 +659,7 @@ class ProductColumnsConfig {
     bool? type,
     bool? extraCost,
     bool? stock,
+    bool? image,
     bool? productMetadata,
     bool? metaStorageLocation,
     bool? metaContainerNumber,
@@ -680,6 +686,7 @@ class ProductColumnsConfig {
         type: type ?? this.type,
         extraCost: extraCost ?? this.extraCost,
         stock: stock ?? this.stock,
+        image: image ?? this.image,
         productMetadata: productMetadata ?? this.productMetadata,
         metaStorageLocation: metaStorageLocation ?? this.metaStorageLocation,
         metaContainerNumber: metaContainerNumber ?? this.metaContainerNumber,

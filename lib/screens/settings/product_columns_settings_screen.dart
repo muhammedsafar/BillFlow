@@ -273,6 +273,17 @@ class _ProductColumnsSettingsScreenState
           onChanged: (v) =>
               setState(() => _config = _config.copyWith(metaSkuCode: v)),
         );
+      case 'image':
+        return _buildItemCard(
+          key: const ValueKey('image'),
+          index: index,
+          title: 'Product Image',
+          subtitle: 'Add and display image attachments (URL or upload) for products.',
+          icon: Icons.image_outlined,
+          value: _config.image,
+          onChanged: (v) =>
+              setState(() => _config = _config.copyWith(image: v)),
+        );
       case 'description':
         return _buildItemCard(
           key: const ValueKey('description'),

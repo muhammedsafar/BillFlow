@@ -2452,12 +2452,13 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
                 style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
           ..._optionalRowCellsV2(p),
-          SizedBox(
-            width: 56,
-            child: Center(
-              child: _productThumbnailCell(p),
+          if (_columnsConfig.image)
+            SizedBox(
+              width: 56,
+              child: Center(
+                child: _productThumbnailCell(p),
+              ),
             ),
-          ),
           SizedBox(
             width: 116,
             child: Row(
@@ -2510,12 +2511,13 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
           Expanded(flex: 3, child: Text(l10n.productMgmtColNameAlias, style: style)),
           Expanded(flex: 2, child: Text(l10n.productMgmtColPrice, style: style)),
           ..._optionalHeaderCellsV2(style),
-          SizedBox(
-            width: 56,
-            child: Center(
-              child: Text('IMAGE', style: style),
+          if (_columnsConfig.image)
+            SizedBox(
+              width: 56,
+              child: Center(
+                child: Text('IMAGE', style: style),
+              ),
             ),
-          ),
           SizedBox(width: 116, child: Text('', style: style)),
         ],
       ),
@@ -2673,20 +2675,15 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
             maxLines: 3, maxLength: 500, required: false);
       case 'hsncode':
         if (!_columnsConfig.hsncode) return null;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildFormField(_hsnCodeController, l10n.productMgmtHsnSacLabel, Icons.qr_code,
-                maxLength: 100, required: false),
-            const SizedBox(height: 16),
-            _buildImagePickerField(
-              controller: _imageController,
-              onImageChanged: () {
-                if (mounted) setState(() {});
-              },
-            ),
-          ],
+        return _buildFormField(_hsnCodeController, l10n.productMgmtHsnSacLabel, Icons.qr_code,
+            maxLength: 100, required: false);
+      case 'image':
+        if (!_columnsConfig.image) return null;
+        return _buildImagePickerField(
+          controller: _imageController,
+          onImageChanged: () {
+            if (mounted) setState(() {});
+          },
         );
       case 'skuCode':
         if (!_columnsConfig.metaSkuCode) return null;
@@ -2892,22 +2889,6 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
         }
         formItems.add(widget);
       }
-    }
-
-    // Include image picker if HSN wasn't enabled/rendered
-    if (!_columnsConfig.hsncode) {
-      formItems.insert(
-        formItems.length > 1 ? 1 : 0,
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: _buildImagePickerField(
-            controller: _imageController,
-            onImageChanged: () {
-              if (mounted) setState(() {});
-            },
-          ),
-        ),
-      );
     }
 
     return Column(
@@ -3360,78 +3341,80 @@ class _ProductManagementScreenV2State extends ConsumerState<ProductManagementScr
                               const SizedBox(height: 16),
                               field(hsnCtrl, l10n.productMgmtColHsnSac, Icons.qr_code, maxLength: 100),
                             ],
-                            const SizedBox(height: 16),
-                            if (isEdit)
-                              _buildImagePickerField(
-                                controller: imageCtrl,
-                                readOnly: false,
-                                onImageChanged: () => setDialogState(() {}),
-                              )
-                            else if (imageCtrl.text.trim().isNotEmpty) ...[
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(dialogContext)
-                                      .colorScheme
-                                      .surfaceContainerHighest
-                                      .withValues(alpha: 0.3),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                      color: Theme.of(dialogContext)
-                                          .colorScheme
-                                          .outlineVariant),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text('PRODUCT IMAGE',
-                                            style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w700,
-                                                letterSpacing: 0.5,
-                                                color: Theme.of(dialogContext)
-                                                    .colorScheme
-                                                    .onSurfaceVariant)),
-                                        const Spacer(),
-                                        TextButton.icon(
-                                          onPressed: () =>
+                            if (_columnsConfig.image) ...[
+                              const SizedBox(height: 16),
+                              if (isEdit)
+                                _buildImagePickerField(
+                                  controller: imageCtrl,
+                                  readOnly: false,
+                                  onImageChanged: () => setDialogState(() {}),
+                                )
+                              else if (imageCtrl.text.trim().isNotEmpty) ...[
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(dialogContext)
+                                        .colorScheme
+                                        .surfaceContainerHighest
+                                        .withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: Theme.of(dialogContext)
+                                            .colorScheme
+                                            .outlineVariant),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text('PRODUCT IMAGE',
+                                              style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                  letterSpacing: 0.5,
+                                                  color: Theme.of(dialogContext)
+                                                      .colorScheme
+                                                      .onSurfaceVariant)),
+                                          const Spacer(),
+                                          TextButton.icon(
+                                            onPressed: () =>
+                                                _showProductImageModal(product),
+                                            icon: const Icon(Icons.fullscreen,
+                                                size: 16),
+                                            label: const Text('View Full Size',
+                                                style: TextStyle(fontSize: 12)),
+                                            style: TextButton.styleFrom(
+                                                visualDensity:
+                                                    VisualDensity.compact),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Center(
+                                        child: InkWell(
+                                          borderRadius: BorderRadius.circular(8),
+                                          onTap: () =>
                                               _showProductImageModal(product),
-                                          icon: const Icon(Icons.fullscreen,
-                                              size: 16),
-                                          label: const Text('View Full Size',
-                                              style: TextStyle(fontSize: 12)),
-                                          style: TextButton.styleFrom(
-                                              visualDensity:
-                                                  VisualDensity.compact),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Center(
-                                      child: InkWell(
-                                        borderRadius: BorderRadius.circular(8),
-                                        onTap: () =>
-                                            _showProductImageModal(product),
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          child: ConstrainedBox(
-                                            constraints: const BoxConstraints(
-                                                maxHeight: 180),
-                                            child: ProductImageViewer(
-                                              image: imageCtrl.text.trim(),
-                                              fit: BoxFit.contain,
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            child: ConstrainedBox(
+                                              constraints: const BoxConstraints(
+                                                  maxHeight: 180),
+                                              child: ProductImageViewer(
+                                                image: imageCtrl.text.trim(),
+                                                fit: BoxFit.contain,
+                                              ),
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
+                              ],
                             ],
                             if (_columnsConfig.metaSkuCode) ...[
                               const SizedBox(height: 16),

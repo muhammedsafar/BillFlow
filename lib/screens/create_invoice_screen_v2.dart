@@ -893,7 +893,8 @@ class _CreateInvoiceScreenV2State extends ConsumerState<CreateInvoiceScreenV2> {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Row(
             children: [
-              InkWell(
+              if (_columnsConfig.image) ...[
+                InkWell(
                 onTap: () => ProductImageViewer.showImageModal(
                   context,
                   image: product.image,
@@ -951,7 +952,8 @@ class _CreateInvoiceScreenV2State extends ConsumerState<CreateInvoiceScreenV2> {
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
+            ],
+            Expanded(
                 child: Text(
                   '${product.name} ($_currencySymbol ${product.price})',
                   style: const TextStyle(fontSize: AppFontSize.xlarge),
@@ -1623,7 +1625,8 @@ class _CreateInvoiceScreenV2State extends ConsumerState<CreateInvoiceScreenV2> {
                   ),
                   child: Row(
                     children: [
-                      InkWell(
+                      if (_columnsConfig.image) ...[
+                        InkWell(
                         onTap: () => ProductImageViewer.showImageModal(
                           context,
                           image: itemImage,
@@ -1659,7 +1662,8 @@ class _CreateInvoiceScreenV2State extends ConsumerState<CreateInvoiceScreenV2> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
+                    ],
+                    Expanded(
                         child: Text(
                           item.product.name,
                           style: const TextStyle(
@@ -5341,8 +5345,10 @@ class _CreateInvoiceScreenV2State extends ConsumerState<CreateInvoiceScreenV2> {
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          _buildInvoiceItemImageThumbnail(item),
+          if (_columnsConfig.image) ...[
+            const SizedBox(width: 12),
+            _buildInvoiceItemImageThumbnail(item),
+          ],
           const SizedBox(width: 14),
           Padding(
             padding: const EdgeInsets.only(top: 8),

@@ -33,6 +33,20 @@ void main() {
     final fromJson = ProductColumnsConfig.fromJson(reordered.toJson());
     expect(fromJson.fieldOrder.first, 'extraCost');
     expect(fromJson.metaOrder.first, 'metaNotes');
+    expect(fromJson.fieldOrder.contains('image'), isTrue);
+  });
+
+  test('image field defaults true and survives JSON and copyWith', () {
+    const config = ProductColumnsConfig();
+    expect(config.image, isTrue);
+    expect(ProductColumnsConfig.defaultFieldOrder.contains('image'), isTrue);
+
+    final disabled = config.copyWith(image: false);
+    expect(disabled.image, isFalse);
+    expect(ProductColumnsConfig.fromJson(disabled.toJson()).image, isFalse);
+
+    // Existing config without 'image' key defaults to true
+    expect(ProductColumnsConfig.fromJson({}).image, isTrue);
   });
 }
 
